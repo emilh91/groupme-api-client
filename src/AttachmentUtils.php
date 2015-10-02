@@ -1,5 +1,5 @@
 <?php
-namespace GroupMeApiClient;
+namespace GroupMeApi;
 
 class AttachmentUtils {
     private function __construct() {}

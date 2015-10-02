@@ -1,5 +1,5 @@
 <?php
-namespace GroupMeApiClient;
+namespace GroupMeApi;
 
 class Client {
     private $token;
@@ -9,8 +9,9 @@ class Client {
     }
     
     // Image Service methods
-    public function uploadImage($image_url) {
-        $payload = array('file' => $image_url);
+    public function uploadImage($image_file, $mime, $name) {
+        $curl_file = new \CURLFile($image_file, $mime, $name);
+        $payload = array('file' => $curl_file);
         return $this->request('POST', '/pictures', array(), $payload, true);
     }
     
@@ -136,7 +137,7 @@ class Client {
     }
     
     public function getGroupDetails($group_id) {
-        return $this->request("/groups/$group_id");
+        return $this->get("/groups/$group_id");
     }
     
     public function updateGroupDetails($group_id, array $payload) {
@@ -272,14 +273,17 @@ class Client {
     private function request($method, $endpoint, array $query=array(), array $payload=array(), $img_svc_url=false) {
         if ($img_svc_url) {
             $base_url = 'https://image.groupme.com';
-            $query['access_token'] = $this->token;
+            $header = 'Content-Type: multipart/form-data';
         }
         else {
             $base_url = 'https://api.groupme.com/v3';
-            $query['token'] = $this->token;
+            $header = 'Content-Type: application/json';
         }
+
+        $query['access_token'] = $this->token;
         
         $ch = curl_init();
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array($header));
         curl_setopt($ch, CURLOPT_URL, $base_url . $endpoint . '?' . http_build_query($query));
         curl_setopt($ch, CURLOPT_TIMEOUT, 4);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
@@ -288,8 +292,7 @@ class Client {
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
         
         if ($method == 'POST') {
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
         }
         
         $result = curl_exec($ch);
