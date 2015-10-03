@@ -9,7 +9,7 @@ Install using Composer:
 Your GroupMe API key can be found on the page mentioned above once you are logged in.
 ```php
 require 'vendor/autoload.php';
-$c = new GroupMeApiClient\Client('API-KEY');
+$c = new GroupMeApi\Client('API-KEY');
 ```
 
 ### Client methods
@@ -83,10 +83,19 @@ Aah, the pinnacle of modern communication... To send emojis in GroupMe, you need
 
 ```php
 $raw_text = 'Hello :cool_guy_face::cigar_face:';
-$emojification = GroupMeApiClient\EmojiUtils::extractEmojiNamesFromText($raw_text); // returns an array
-$emoji_attachment = GroupMeApiClient\AttachmentUtils::makeEmojiAttachment($emojification['charmap']);
+$emojification = GroupMeApi\EmojiUtils::extractEmojiNamesFromText($raw_text); // returns an array
+$emoji_attachment = GroupMeApi\AttachmentUtils::makeEmojiAttachment($emojification['charmap']);
 $c->sendDirectMessage('OTHER-USER-ID', $emojification['text'], null, array($emoji_attachment));
 ```
 
 ### Image Service
-This functionality is still buggy. Check back again later. Sorry :(
+Before using images in messages you have to upload an image to GroupMe's image service.
+
+```php
+require 'vendor/autoload.php';
+$c = new GroupMeApi\Client('API-KEY');
+$res = $c->uploadImage('my_image_file.png', 'image/png', 'testpic');
+```
+
+If the upload was successfull, the return variable contains the image url in `$res['payload']['url']` or an error message in `$res['error'][]`.
+

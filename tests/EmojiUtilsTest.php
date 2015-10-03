@@ -1,5 +1,5 @@
 <?php
-namespace GroupMeApiClient;
+namespace GroupMeApi;
 
 class EmojiUtilsTest extends \PHPUnit_Framework_TestCase {
     public function test_ShouldReturnEmojiSequenceByName() {

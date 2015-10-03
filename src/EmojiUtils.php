@@ -1,5 +1,5 @@
 <?php
-namespace GroupMeApiClient;
+namespace GroupMeApi;
 
 class EmojiUtils {
     const PLACEHOLDER = "☃";
