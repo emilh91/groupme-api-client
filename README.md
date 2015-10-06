@@ -51,14 +51,14 @@ public function getLeaderboardForMonth($group_id)
 public function getMyLikes($group_id)
 public function getMyHits($group_id)
 public function addMembersToGroup($group_id, array $members)
+public function getAddMembersToGroupResult($group_id, $results_id)
 public function updateMyGroupMembership($group_id, $nickname)
-public function getGroupMembers($group_id, $results_id)
 public function removeGroupMember($group_id, $user_id)
 public function getLatestGroupMessages($group_id, $limit=20)
 public function getGroupMessagesBefore($group_id, $message_id, $limit=20)
 public function getGroupMessagesAfter($group_id, $message_id, $limit=20)
 public function getGroupMessagesSince($group_id, $message_id, $limit=20)
-public function sendGroupMessage($group_id, $text, $source_guid=null, array $attachments=array())
+public function sendGroupMessage($group_id, $text, array $attachments=array(), $source_guid=null)
 ```
 
 ##### User methods
@@ -74,6 +74,7 @@ When sending messages (bot, direct, or group), you can specify an array of attac
 ```php
 public static function makeLocationAttachment($lat, $lng, $name='')
 public static function makeImageAttachment($image_url)
+public static function makeMentionsAttachment($users, $strpos)
 public static function makeSplitAttachment()
 public static function makeEmojiAttachment(array $charmap)
 ```
