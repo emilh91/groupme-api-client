@@ -70,7 +70,7 @@ public function disableSmsMode()
 ```
 
 ### Attachments
-When sending messages (bot, direct, or group), you can specify an array of attachments. A factory class exists to easily create attachments: `GroupMeApiClient\AttachmentUtils`.
+When sending messages (bot, direct, or group), you can specify an array of attachments. A factory class exists to easily create attachments: `GroupMeApi\AttachmentUtils`.
 ```php
 public static function makeLocationAttachment($lat, $lng, $name='')
 public static function makeImageAttachment($image_url)
