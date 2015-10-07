@@ -707,7 +707,8 @@ class Client {
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
         
         if ($method == 'POST') {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+            $data = $img_svc_url ? $payload : json_encode($payload);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
         }
         
         $result = curl_exec($ch);

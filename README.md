@@ -80,9 +80,12 @@ public static function makeEmojiAttachment(array $charmap)
 ```
 
 ### Emojis
-Aah, the pinnacle of modern communication... To send emojis in GroupMe, you need to specify a charmap (character map) when creating the attachment. For this purpose, another factory class exists: `GroupMeApiClient\EmojiUtils`.
+Aah, the pinnacle of modern communication... To send emojis in GroupMe, you need to specify a charmap (character map) when creating the attachment. For this purpose, another factory class exists: `GroupMeApi\EmojiUtils`.
 
 ```php
+require 'vendor/autoload.php';
+$c = new GroupMeApi\Client('API-KEY');
+
 $raw_text = 'Hello :cool_guy_face::cigar_face:';
 $emojification = GroupMeApi\EmojiUtils::extractEmojiNamesFromText($raw_text); // returns an array
 $emoji_attachment = GroupMeApi\AttachmentUtils::makeEmojiAttachment($emojification['charmap']);
@@ -100,3 +103,4 @@ $res = $c->uploadImage('my_image_file.png', 'image/png', 'testpic');
 
 If the upload was successfull, the return variable contains the image url in `$res['payload']['url']` or an error message in `$res['error'][]`.
 
+Thanks to user [rgaida](https://github.com/rgaida) for fixing the image service!
