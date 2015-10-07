@@ -3,7 +3,19 @@
 namespace GroupMeApi;
 
 class Client {
+
+    const MAX_GROUPS_PER_REQUEST = 499;
+    const MAX_PRI_NAME_LEN       = 140;
+    const MAX_GRP_DESC_LEN       = 255;
+
+    const HTTP_OK          = 200;
+    const HTTP_BAD_REQUEST = 400;
+
     private $token;
+    
+    private $cache;
+    private $useCache;
+    private $cacheTimeout;
 
     /**
      * Class constructor
@@ -130,7 +142,7 @@ class Client {
      * 
      * @return mixed
      */
-    public function getDirectMessageChats($page=1, $per_page=10) {
+    public function getDirectMessageChats($page = 1, $per_page = 10) {
         $query = array(
             'page' => $page,
             'per_page' => $per_page
@@ -146,7 +158,7 @@ class Client {
      * 
      * @return mixed
      */
-    public function getLatestDirectMessages($other_user_id, $limit=20) {
+    public function getLatestDirectMessages($other_user_id, $limit = 20) {
         $query = array(
             'other_user_id' => $other_user_id,
             'limit' => $limit
@@ -239,6 +251,63 @@ class Client {
     // GROUP METHODS
 
     /**
+     * Gets a group id by the group name
+     * 
+     * @param string $name Group name
+     * 
+     * @return mixed Group id or FALSE
+     */
+    public function getGroupIdByName($name) {
+        $res = $this->getAllGroups();
+
+        if($res['meta']['code'] == self::HTTP_OK) 
+            foreach($res['response'] as $group) {
+                if ($group['name'] == $name) return $group['id'];
+            }
+
+        return FALSE;
+    }
+
+    /**
+     * Checks if the authenticated user is a member
+     * of a certain group
+     * 
+     * @param mixed $grp Group name or group id
+     * 
+     * @return bool
+     */
+    public function isMemberOfGroup($grp) {
+        $res = $this->getAllGroups();
+
+        if($res['meta']['code'] == self::HTTP_OK) {
+            foreach($res['response'] as $group) {
+                if ((is_numeric($grp) && $group['id'] == $grp) || 
+                    (is_string($grp) && $group['name'] == $grp)) return TRUE;
+            }
+        }
+
+        return FALSE;
+    }
+
+    /**
+     * Gets a group name by its id
+     * 
+     * @param int $id Group id
+     * 
+     * @return mixed Group name or FALSE
+     */
+    public function getGroupNameById($id) {
+        $res = $this->getAllGroups();
+
+        if($res['meta']['code'] == self::HTTP_OK) 
+            foreach($res['response'] as $group) {
+                if ($group['id'] == $id) return $group['name'];
+            }
+
+        return FALSE;
+    }
+
+    /**
      * Lists the authenticated user's active groups
      * 
      * @param int $page     Fetch a particular page of results (defaults to 1)
@@ -246,12 +315,21 @@ class Client {
      * 
      * @return mixed
      */
-    public function getAllGroups($page=1, $per_page=10) {
+    public function getGroups($page = 1, $per_page = 10) {
         $query = array(
             'page' => $page,
             'per_page' => $per_page
         );
         return $this->get('/groups', $query);
+    }
+
+    /**
+     * Lists the maximum number of the authenticated user's active groups
+     * 
+     * @return mixed
+     */
+    public function getAllGroups() {        
+        return $this->getGroups(1, self::MAX_GROUPS_PER_REQUEST);
     }
     
     /**
@@ -262,7 +340,7 @@ class Client {
     public function getFormerGroups() {
         return $this->get('/groups/former');
     }
-    
+
     /**
      * Creates a new group
      * 
@@ -275,9 +353,12 @@ class Client {
      */
     public function createGroup($name, $description='', $image_url='', $share=false) {
         $payload = array(
-            'name' => substr($name, 0, (strlen($name) <= 140) ? strlen($name) : 140),
-            'description' => substr($description, 0, 
-                (strlen($description) <= 255) ? strlen($description) : 255),
+            'name' => substr($name, 0, (strlen($name) <= 
+                self::MAX_PRI_NAME_LEN) ? strlen($name) : self::MAX_PRI_NAME_LEN),
+
+            'description' => substr($description, 0, (strlen($description) <= 
+                self::MAX_GRP_DESC_LEN) ? strlen($description) : self::MAX_GRP_DESC_LEN),
+
             'image_url' => $image_url,
             'share' => boolval($share)
         );
@@ -634,7 +715,7 @@ class Client {
     }
 
     /**
-     * DISABLES SMS MODE
+     * Disables SMS mode
      * 
      * @return mixed
      */
@@ -642,7 +723,7 @@ class Client {
         return $this->post('/users/sms_mode/delete');
     }
     
-    // Core methods
+    // CORE METHODS
 
     /**
      * Gets data from an endpoint
@@ -689,30 +770,134 @@ class Client {
         else {
             $base_url = 'https://api.groupme.com/v3';
             $header = 'Content-Type: application/json';
-            $payload = json_encode($payload);
         }
 
         $query['access_token'] = $this->token;
         
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array($header));
+        $url = $base_url . $endpoint . '?' . http_build_query($query);
 
-        curl_setopt($ch, CURLOPT_URL, 
-            $base_url . $endpoint . '?' . http_build_query($query));
+        if ($this->isCached($url)) {
+            $result = $this->getFromCache($url);
+        } else {
 
-        curl_setopt($ch, CURLOPT_TIMEOUT, 4);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'GroupMe API Client');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-        
-        if ($method == 'POST') {
-            $data = $img_svc_url ? $payload : json_encode($payload);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array($header));
+            curl_setopt($ch, CURLOPT_URL, $url);
+
+            curl_setopt($ch, CURLOPT_TIMEOUT, 4);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'GroupMe API Client');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+            
+            if ($method == 'POST') {
+                $data = $img_svc_url ? $payload : json_encode($payload);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+            }
+            
+            $result = $this->cache($url, curl_exec($ch));
+
+            curl_close($ch);
         }
-        
-        $result = curl_exec($ch);
-        curl_close($ch);
+
         return json_decode($result, true);
     }
+
+    // CACHE METHODS
+
+    /**
+     * Enables or disable caching of CURL GET responses
+     * 
+     * @param bool $mode    If TRUE, responses will be cached
+     * @param int  $timeout Timeout in seconds for cached content
+     * 
+     */
+    public function useResponseCaching($mode, $timeout = 300) {
+        $this->useCache = $mode;
+        $this->cacheTimeout = $timeout;
+    }
+
+    /**
+     * Checks if an item is in the cache and not
+     * timed out
+     * 
+     * @param string $key Item key
+     * 
+     * @return bool Returns true, if item is cached
+     */
+    private function isCached($key) {
+        if (!$this->useCache) return FALSE;
+        $idx = $this->getCacheIndex($key);
+        if (isset($this->cache[$idx])) {
+            return ($this->cache[$idx]['timestamp'] + 
+                $this->cacheTimeout > time());            
+        }
+        return FALSE;
+    }
+
+    /**
+     * Creates an index string from a given key
+     * 
+     * Cache items are indexed by a hash value 
+     * generated from the key
+     * 
+     * @param string $key Item key, e.g. request url, ...
+     * 
+     * @return string Index string
+     */
+    private function getCacheIndex($key) {
+        return md5($key);
+    }
+
+    /**
+     * Gets an item from the cache
+     * 
+     * @param string $key Item key
+     * 
+     * @return mixed
+     */
+    private function getFromCache($key) {
+        if ($this->isCached($key)) {
+            return $this->cache[$this->getCacheIndex($key)]['data'];
+        }
+
+        return FALSE;
+    }
+
+    /**
+     * Clears the cache
+     */
+    public function clearCache() {
+        $this->cache = NULL;
+    }
+
+    /**
+     * Removes outdated items from the cache
+     */
+    public function purgeCache() {
+        foreach($this->cache as $key => $item) {
+            if ($item['timestamp'] + $this->cacheTimeout < time()) {
+                $this->cache[$key] = NULL;
+            }
+        }
+    }
+
+    /**
+     * Puts data in the cache
+     * 
+     * @param string $key  Item key
+     * @param mixed  $data Item data
+     * 
+     * @return mixed Returns $data
+     */
+    private function cache($key, $data) {
+        if ($this->useCache) {
+            $this->cache[$this->getCacheIndex($key)] = 
+                array('timestamp' => time(), 'data' => $data);
+        }
+
+        return $data;
+    }
+
+
 }
