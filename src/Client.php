@@ -251,24 +251,6 @@ class Client {
     // GROUP METHODS
 
     /**
-     * Gets a group id by the group name
-     * 
-     * @param string $name Group name
-     * 
-     * @return mixed Group id or FALSE
-     */
-    public function getGroupIdByName($name) {
-        $res = $this->getAllGroups();
-
-        if($res['meta']['code'] == self::HTTP_OK) 
-            foreach($res['response'] as $group) {
-                if ($group['name'] == $name) return $group['id'];
-            }
-
-        return FALSE;
-    }
-
-    /**
      * Checks if the authenticated user is a member
      * of a certain group
      * 
@@ -289,20 +271,53 @@ class Client {
         return FALSE;
     }
 
-    /**
-     * Gets a group name by its id
-     * 
-     * @param int $id Group id
-     * 
-     * @return mixed Group name or FALSE
-     */
-    public function getGroupNameById($id) {
+    function getGroupById($group_id) {
+        return $this->get("/groups/$group_id");
+    }
+
+    function getGroupByName($name) {
         $res = $this->getAllGroups();
 
         if($res['meta']['code'] == self::HTTP_OK) 
             foreach($res['response'] as $group) {
-                if ($group['id'] == $id) return $group['name'];
+                if ($group['name'] == $name) 
+                    return array(
+                        'meta' => $res['meta'],
+                        'response' => $group
+                    );
             }
+
+        return $res;
+    }
+
+    /**
+     * Gets a group id by the group name
+     * 
+     * @param string $name Group name
+     * 
+     * @return mixed Group id or FALSE
+     */
+    public function getGroupIdByName($name) {
+        $res = $this->getGroupByName($name);
+
+        if($res['meta']['code'] == self::HTTP_OK) 
+            return $res['response']['id'];
+
+        return FALSE;
+    }
+
+    /**
+     * Gets a group name by its id
+     * 
+     * @param int $group_id Group id
+     * 
+     * @return mixed Group name or FALSE
+     */
+    public function getGroupNameById($group_id) {
+        $res = $this->getGroupById($group_id);
+
+        if($res['meta']['code'] == self::HTTP_OK) 
+            return $res['response']['name'];
 
         return FALSE;
     }
@@ -366,14 +381,16 @@ class Client {
     }
     
     /**
-     * Retrieves a specific group
+     * Retrieves group details
      * 
-     * @param string $group_id Group id
+     * @param string $group Group id or group name
      * 
      * @return mixed
      */
-    public function getGroupDetails($group_id) {
-        return $this->get("/groups/$group_id");
+    public function getGroupDetails($group) {
+        if (is_numeric($group)) return $this->getGroupById($group);
+        if (is_string($group)) return $this->getGroupByName($group);
+        return array();
     }
     
     /**
@@ -562,6 +579,21 @@ class Client {
         return $this->post("/groups/$group_id/memberships/update", $payload);
     }
     
+    /**
+     * Gets all members of a group
+     * 
+     * @param int $group_id Group id
+     * 
+     * @return array Group members or empty array
+     */
+    public function getGroupMembers($group_id) {
+        $group = $this->getGroupDetails($group_id);
+        if (is_array($group['response']['members']))
+            return $group['response']['members'];          
+
+        return array();        
+    }
+
     /**
      * Removes a member (or yourself) from a group
      * 

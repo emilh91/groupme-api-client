@@ -36,7 +36,10 @@ public function unlikeDirectMessage($other_user_id, $message_id)
 
 ##### Group methods
 ```php
-public function getAllGroups($page=1, $per_page=10)
+public function getAllGroups()
+public function getGroups($page = 1, $per_page = 10)
+public function getGroupByName($name)
+public function getGroupById($group_id)
 public function getFormerGroups()
 public function createGroup($name, $description='', $image_url='', $share=false)
 public function getGroupDetails($group_id)
@@ -52,12 +55,16 @@ public function getMyLikes($group_id)
 public function getMyHits($group_id)
 public function addMembersToGroup($group_id, array $members)
 public function getAddMembersToGroupResult($group_id, $results_id)
+public function getGroupMembers($group_id)
 public function updateMyGroupMembership($group_id, $nickname)
 public function removeGroupMember($group_id, $user_id)
 public function getLatestGroupMessages($group_id, $limit=20)
 public function getGroupMessagesBefore($group_id, $message_id, $limit=20)
 public function getGroupMessagesAfter($group_id, $message_id, $limit=20)
 public function getGroupMessagesSince($group_id, $message_id, $limit=20)
+public function getGroupNameById($id)
+public function getGroupIdByName($name)
+public function isMemberOfGroup($grp)
 public function sendGroupMessage($group_id, $text, array $attachments=array(), $source_guid=null)
 ```
 
