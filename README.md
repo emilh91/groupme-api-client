@@ -6,7 +6,7 @@ Install using Composer:
 `"emilh91/groupme-api-client": "dev-master"`
 
 ### Boilerplate
-Your GroupMe API key can be found on the page mentioned above once you are logged in.
+Your GroupMe API key can be found on the page mentioned above once you are logged in. You do not need to specify an API key if you only plan to use this library for **sending bot messages**.
 ```php
 require 'vendor/autoload.php';
 $c = new GroupMeApi\Client('API-KEY');
@@ -20,6 +20,7 @@ All the methods in the following sub-sections should be invoked on the newly cre
 public function getMyBots()
 public function createBot($bot_name, $group_id, $avatar_url='', $callback_url='')
 public function sendBotMessage($bot_id, $text, array $attachments=array())
+public function parseBotMessage($bot_id, $text)
 public function destroyBot($bot_id)
 ```
 
@@ -29,7 +30,8 @@ public function getDirectMessageChats($page=1, $per_page=10)
 public function getLatestDirectMessages($other_user_id, $limit=20)
 public function getDirectMessagesBefore($other_user_id, $message_id)
 public function getDirectMessagesSince($other_user_id, $message_id)
-public function sendDirectMessage($other_user_id, $text, $source_guid=null, array $attachments=array())
+public function sendDirectMessage($other_user_id, $text, array $attachments=array(), $source_guid=null)
+public function parseDirectMessage($other_user_id, $text, $source_guid=null)
 public function likeDirectMessage($other_user_id, $message_id)
 public function unlikeDirectMessage($other_user_id, $message_id)
 ```
@@ -42,7 +44,7 @@ public function getGroupByName($name)
 public function getGroupById($group_id)
 public function getFormerGroups()
 public function createGroup($name, $description='', $image_url='', $share=false)
-public function getGroupDetails($group_id)
+public function getGroupDetails($group)
 public function updateGroupDetails($group_id, array $payload)
 public function destroyGroup($group_id)
 public function joinGroup($group_id, $share_token)
@@ -62,10 +64,11 @@ public function getLatestGroupMessages($group_id, $limit=20)
 public function getGroupMessagesBefore($group_id, $message_id, $limit=20)
 public function getGroupMessagesAfter($group_id, $message_id, $limit=20)
 public function getGroupMessagesSince($group_id, $message_id, $limit=20)
-public function getGroupNameById($id)
-public function getGroupIdByName($name)
-public function isMemberOfGroup($grp)
+public function getGroupNameById($group_id)
+public function getGroupIdByName($group_name)
+public function isMemberOfGroup($group_id)
 public function sendGroupMessage($group_id, $text, array $attachments=array(), $source_guid=null)
+public function parseGroupMessage($group_id, $text, $source_guid=null)
 ```
 
 ##### User methods
@@ -87,20 +90,18 @@ public static function makeEmojiAttachment(array $charmap)
 ```
 
 ### Emojis
-Aah, the pinnacle of modern communication... To send emojis in GroupMe, you need to specify a charmap (character map) when creating the attachment. For this purpose, another factory class exists: `GroupMeApi\EmojiUtils`.
+Aah, the pinnacle of modern communication... ~~To send emojis in GroupMe, you need to specify a charmap (character map) when creating the attachment. For this purpose, another factory class exists: `GroupMeApi\EmojiUtils`.~~ To send emojis without dealing with charmaps and placeholders, just write them inline and use the `parse*Message(...)` methods to send them.
 
 ```php
 require 'vendor/autoload.php';
 $c = new GroupMeApi\Client('API-KEY');
-
-$raw_text = 'Hello :cool_guy_face::cigar_face:';
-$emojification = GroupMeApi\EmojiUtils::extractEmojiNamesFromText($raw_text); // returns an array
-$emoji_attachment = GroupMeApi\AttachmentUtils::makeEmojiAttachment($emojification['charmap']);
-$c->sendDirectMessage('OTHER-USER-ID', $emojification['text'], null, array($emoji_attachment));
+$c->parseBotMessage('BOT-ID', 'Awaiting instructions... :frustrated_face:');
+$c->parseDirectMessage('OTHER-USER-ID', 'Hello :cool_guy_face::cigar_face:');
+$c->parseGroupMessage('GROUP-ID', 'Hello everyone! :smiley_face::content_face:');
 ```
 
 ### Image Service
-Before using images in messages you have to upload an image to GroupMe's image service.
+Before using local images in messages you have to upload an image to GroupMe's image service.
 
 ```php
 require 'vendor/autoload.php';
@@ -108,6 +109,5 @@ $c = new GroupMeApi\Client('API-KEY');
 $res = $c->uploadImage('my_image_file.png', 'image/png', 'testpic');
 ```
 
-If the upload was successfull, the return variable contains the image url in `$res['payload']['url']` or an error message in `$res['error'][]`.
-
+If the upload was successful, the return variable contains the image url in `$res['payload']['url']` or an error message in `$res['error'][]`.
 Thanks to user [rgaida](https://github.com/rgaida) for fixing the image service!
